@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VEIL — Security Center</title>
+<style>
+  :root { --bg:#0b0e14; --panel:#12161f; --line:#232a38; --text:#e6e9ef; --muted:#8b93a5;
+    --green:#3fb950; --red:#f85149; --amber:#d29922; --blue:#58a6ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display:flex; gap:16px; align-items:center; padding:14px 20px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:5; flex-wrap:wrap; }
+  header h1 { font-size:19px; margin:0; letter-spacing:.4px; }
+  header h1 span { color:var(--muted); font-weight:400; }
+  .pill { padding:3px 10px; border-radius:999px; font-size:12px; border:1px solid var(--line); color:var(--muted); }
+  .pill.ok { color:var(--green); border-color:var(--green); }
+  .pill.bad { color:var(--red); border-color:var(--red); }
+  .spacer { flex:1; }
+  button { background:#1c2331; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:8px 14px; font-size:14px; cursor:pointer; }
+  button:hover { border-color:var(--blue); }
+  button.primary { background:var(--blue); color:#04122b; border-color:var(--blue); font-weight:600; }
+  button.danger { background:#3a1414; color:#ffb4b4; border-color:var(--red); }
+  button.approve { background:#12351a; color:#8be89b; border-color:var(--green); }
+  button:disabled { opacity:.45; cursor:default; }
+  main { max-width:1080px; margin:0 auto; padding:18px 20px 40px; display:grid; gap:16px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:760px){ .grid2{ grid-template-columns:1fr; } }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
+  section h2 { font-size:13px; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); margin:0 0 12px; }
+  section h2 .count { color:var(--amber); }
+  .row { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid #1a202c; }
+  .row:last-child { border-bottom:0; }
+  .muted { color:var(--muted); }
+  .small { font-size:13px; }
+  .mono { font-family:ui-monospace, "SF Mono", Menlo, monospace; font-size:12.5px; word-break:break-all; }
+  .tag { display:inline-block; padding:2px 8px; border-radius:6px; font-size:12px; }
+  .tag.allow { background:#12351a; color:#8be89b; }
+  .tag.deny { background:#3a1414; color:#ffb4b4; }
+  .tag.needs { background:#3a2f10; color:#f0c35c; }
+  .tag.off { background:#1c2331; color:var(--muted); }
+  .pending { border:1px solid var(--amber); border-radius:10px; padding:12px; margin-bottom:10px; }
+  .pending p { margin:4px 0; }
+  .pending .actions { display:flex; gap:8px; margin-top:10px; }
+  .netbtns { display:flex; gap:8px; flex-wrap:wrap; }
+  .netbtns button.active { background:var(--blue); color:#04122b; border-color:var(--blue); font-weight:600; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  td, th { text-align:left; padding:6px 4px; border-bottom:1px solid #1a202c; vertical-align:top; }
+  th { color:var(--muted); font-weight:500; }
+  .empty { color:var(--muted); padding:10px 0; }
+  #err { color:var(--red); }
+</style>
+</head>
+<body>
+<header>
+  <h1>VEIL <span>Security Center</span></h1>
+  <span id="broker-pill" class="pill">broker: …</span>
+  <span id="task-pill" class="pill">task: idle</span>
+  <div class="spacer"></div>
+  <button id="btn-start" onclick="taskAction('start')">▶ Start demo task</button>
+  <button id="btn-research" onclick="startTask('researcher')">🔍 Start researcher task</button>
+  <button id="btn-video" onclick="startTask('video')">🎬 Start video demo task</button>
+  <button id="btn-pause" onclick="taskAction('pause')" disabled>⏸ Pause AI</button>
+  <button id="btn-resume" onclick="taskAction('resume')" disabled>▶ Resume</button>
+  <button id="btn-kill" class="danger" onclick="taskAction('kill')" disabled>■ Kill task</button>
+</header>
+<main>
+  <div id="err"></div>
+
+  <section>
+    <h2>Current task</h2>
+    <div class="row"><span>Task</span><b id="task-name">—</b></div>
+    <div class="row"><span>Objective</span><span id="task-objective" class="muted">—</span></div>
+    <div class="row"><span>Step</span><span id="task-step" class="mono">—</span></div>
+    <div class="row"><span>Status</span><span id="task-status">—</span></div>
+  </section>
+
+  <section>
+    <h2>Browser — veil-browser-cli, not a GUI</h2>
+    <p class="small muted">The AI reads the accessibility tree (<span class="mono">snapshot</span> → <span class="mono">@e1</span> to act), not pixels. One CLI session per task, own Chrome profile, no host cookies. Navigation and clicks need your approval; reading and scrolling don't.</p>
+    <div id="browser-sessions"><p class="empty">No browser sessions. Open a page through a task and its session appears here.</p></div>
+  </section>
+
+  <section id="pending-sec">
+    <h2>Pending approvals <span class="count" id="pending-count"></span></h2>
+    <div id="pending-list"><p class="empty">Nothing waiting. When the agent needs you, it appears here — with the exact action, target and expected effect, not just “Allow?”.</p></div>
+  </section>
+
+  <div class="grid2">
+    <section>
+      <h2>Network — a state, not a switch</h2>
+      <p class="small muted">Changing this changes the broker policy immediately and is saved to the policy file. Going offline revokes network approvals on the spot.</p>
+      <div class="netbtns" id="net-btns"></div>
+      <div class="row"><span>Allowed domains</span><span id="domains" class="mono small">—</span></div>
+    </section>
+    <section>
+      <h2>Capabilities</h2>
+      <div id="caps"></div>
+    </section>
+  </div>
+
+  <div class="grid2">
+    <section>
+      <h2>Active approvals (expire)</h2>
+      <div id="approvals"><p class="empty">No active approvals. Approvals are bound to the exact action and expire (15 min by default).</p></div>
+    </section>
+    <section>
+      <h2>Resource limits</h2>
+      <div id="limits"></div>
+    </section>
+  </div>
+
+  <section>
+    <h2>Recent actions — journal (newest first)</h2>
+    <table><thead><tr><th>Action</th><th>Target</th><th>Outcome</th><th>Reason</th></tr></thead>
+    <tbody id="journal"></tbody></table>
+  </section>
+
+  <section>
+    <h2>Snapshots — rollback</h2>
+    <div id="snaps"><p class="empty">No snapshots yet. Run a task and snapshots appear here.</p></div>
+  </section>
+</main>
+<script>
+let state = null;
+const DEMO = new URLSearchParams(location.search).has("demo");
+// Demo mode (?demo=1): the artifact preview has no broker server, so
+// the UI runs on simulated state and every button mutates it locally.
+// The real server mode (no ?demo) is identical UI, backed by /api/*.
+let DEMO_STATE = null;
+if (DEMO) {
+  DEMO_STATE = {
+    broker: {ok: true, pid: 1234, approvals_held: 1, pending: 1},
+    bwrap_available: true,
+    policy: {network: {state: "approved-domains", allowed_domains: ["github.com","pypi.org"]}},
+    network_state: "approved-domains", allowed_domains: ["github.com","pypi.org"],
+    capabilities: {"api.call": false, "browser.navigate": true, "camera.access": false, "filesystem.read": true, "filesystem.write": true, "install.host-software": false, "network.egress": true, "system.settings": false, "terminal.run": true},
+    pending: [{proposal_id: "prop-demo1", action: "browser.navigate", target: "https://github.com", expected_effect: "open github.com in the task browser", outcome: "needs_user_confirmation", reason: "external side effect: user confirmation required", capability: {risk: "medium", session: "demo-task-1", who: "agent:demo-task-1", scope: {domains: ["github.com"]}}}],
+    approvals: [{binding_id: "demo-bind", capability: "terminal.run", canonical: "{}", expires_in_seconds: 742}],
+    journal: [
+      {action: "browser.navigate", target: "https://github.com", outcome: "needs_user_confirmation", reason: "external side effect: user confirmation required"},
+      {action: "terminal.run", target: "python3 test_main.py", outcome: "allow", reason: "action class reversible-write: automatic inside scope"},
+      {action: "install.host-software", target: "pip install pytest", outcome: "deny", reason: "capability install.host-software blocked by policy"},
+      {action: "filesystem.write", target: "/workspace/main.py", outcome: "allow", reason: "action class reversible-write: automatic inside scope"}],
+    snapshots: [{snapshot_id: "1793940000-demo01", workspace: "/home/user/veil-os/demo-workspace", file_count: 2, files: ["main.py","test_main.py"]}],
+    task: {name: "Demo task — Developer environment", objective: "Create a small project, write code, run tests, show result.", status: "waiting", step: "waiting for approval: browser.navigate https://github.com", pid: 1234, paused: false, alive: true},
+    limits: {cpu_seconds: 30, memory_mb: 512, max_processes: 512, max_file_mb: 100, timeout_seconds: 30, cgroup_probe: {enforced_here: false}},
+    now: Date.now()/1000,
+  };
+}
+const NET_STATES = ["offline","approved-domains","research-web","unrestricted-with-confirmation"];
+function esc(s){ return String(s ?? "").replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function outcomeTag(o){
+  if(o==="allow") return '<span class="tag allow">allow</span>';
+  if(o==="deny") return '<span class="tag deny">deny</span>';
+  return '<span class="tag needs">'+esc(o)+'</span>';
+}
+async function api(path, body){
+  if (DEMO) {
+    // Simulate the server locally.
+    const s = DEMO_STATE;
+    if (path === "/api/approve") {
+      const p = s.pending.find(x => x.proposal_id === body.proposal_id);
+      if (p) { s.pending = s.pending.filter(x => x !== p);
+        s.approvals.push({binding_id: "demo-"+p.proposal_id, capability: p.action === "browser.navigate" ? "browser.navigate" : p.action, canonical: "{}", expires_in_seconds: 900});
+        s.journal.unshift({action: p.action, target: p.target, outcome: "allow", reason: "user confirmation verified for exact action"});
+        s.task.status = "running"; s.task.step = p.target + " approved — continuing"; }
+      return {token: "appr-demo"};
+    }
+    if (path === "/api/deny") {
+      const p = s.pending.find(x => x.proposal_id === body.proposal_id);
+      if (p) { s.pending = s.pending.filter(x => x !== p);
+        s.journal.unshift({action: p.action, target: p.target, outcome: "deny", reason: "denied by user in Security Center"});
+        s.task.status = "denied"; s.task.step = p.target + " was denied — task stopped here"; s.task.alive = false; }
+      return {denied: true};
+    }
+    if (path === "/api/network") { s.network_state = body.state; s.policy.network.state = body.state;
+      if (body.state === "offline") { s.approvals = s.approvals.filter(a => a.capability !== "browser.navigate"); }
+      return {network_state: body.state}; }
+    if (path === "/api/capability") { s.capabilities[body.capability] = body.allowed; return {capability: body.capability, allowed: body.allowed}; }
+    if (path === "/api/snapshot/rollback") { return {rolled_back: body.snapshot_id}; }
+    if (path.startsWith("/api/task/")) {
+      const a = path.split("/").pop();
+      if (a === "start") { s.task = {name: "Demo task — Developer environment", objective: "Create a small project, write code, run tests, show result.", status: "waiting", step: "waiting for approval: browser.navigate https://github.com", pid: 1234, paused: false, alive: true};
+        s.pending = [{proposal_id: "prop-demo1", action: "browser.navigate", target: "https://github.com", expected_effect: "open github.com in the task browser", outcome: "needs_user_confirmation", reason: "external side effect: user confirmation required", capability: {risk: "medium", session: "demo-task-1", who: "agent:demo-task-1", scope: {domains: ["github.com"]}}}]; }
+      if (a === "pause") { s.task.paused = true; }
+      if (a === "resume") { s.task.paused = false; }
+      if (a === "kill") { s.task.status = "killed"; s.task.step = "killed by user in Security Center (SIGTERM)"; s.task.alive = false; }
+      return {ok: true};
+    }
+    return {};
+  }
+  const r = await fetch(path, body ? {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)} : undefined);
+  const j = await r.json();
+  if(!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+async function taskAction(a){
+  try { await api("/api/task/"+a, {}); refresh(); }
+  catch(e){ document.getElementById("err").textContent = e.message; }
+}
+async function startTask(t){
+  try { await api("/api/task/start", {task: t}); refresh(); }
+  catch(e){ document.getElementById("err").textContent = e.message; }
+}
+async function approve(id){ try{ await api("/api/approve",{proposal_id:id}); refresh(); }catch(e){ alert(e.message); } }
+async function deny(id){ try{ await api("/api/deny",{proposal_id:id}); refresh(); }catch(e){ alert(e.message); } }
+async function setNet(s){ try{ await api("/api/network",{state:s}); refresh(); }catch(e){ alert(e.message); } }
+async function toggleCap(name, allowed){ try{ await api("/api/capability",{capability:name, allowed}); refresh(); }catch(e){ alert(e.message); } }
+async function rollback(id){ if(!confirm("Roll back the workspace to snapshot "+id+"? Current files in that workspace will be replaced.")) return; try{ await api("/api/snapshot/rollback",{snapshot_id:id}); refresh(); }catch(e){ alert(e.message); } }
+
+function render(){
+  if(!state) return;
+  const b = state.broker;
+  const bp = document.getElementById("broker-pill");
+  bp.textContent = b.ok ? "broker: online (pid "+b.pid+")" : "broker: OFFLINE";
+  bp.className = "pill " + (b.ok ? "ok" : "bad");
+  const t = state.task;
+  const tp = document.getElementById("task-pill");
+  tp.textContent = "task: " + t.status + (t.paused ? " (paused)" : "");
+  document.getElementById("task-name").textContent = t.name || "—";
+  document.getElementById("task-objective").textContent = t.objective || "—";
+  document.getElementById("task-step").textContent = t.step || "—";
+  document.getElementById("task-status").textContent = t.status + (t.alive ? " • process alive" : "") + (t.pid ? " • pid "+t.pid : "");
+  document.getElementById("btn-start").disabled = !!t.alive;
+  document.getElementById("btn-pause").disabled = !t.alive || t.paused;
+  document.getElementById("btn-resume").disabled = !t.alive || !t.paused;
+  document.getElementById("btn-kill").disabled = !t.alive;
+
+  // browser sessions
+  const bs = state.browser_sessions || [];
+  document.getElementById("browser-sessions").innerHTML = bs.length ? bs.map(s =>
+    `<div class="row"><span><b class="mono">${esc(s.session)}</b><br><span class="small muted">${s.tabs ?? "?"} tab(s) • ${esc(s.active_title || "")}</span><br><span class="mono small">${esc(s.active_url || "no page open")}</span></span><span class="tag ${s.ok ? "allow" : "off"}">${s.ok ? "live" : "stopped"}</span></div>`).join("")
+    : '<p class="empty">No browser sessions. Open a page through a task and its session appears here.</p>';
+  if (DEMO) {
+    // In demo mode the server has no sessions; show one illustrative row.
+    if (!bs.length) document.getElementById("browser-sessions").innerHTML =
+      '<div class="row"><span><b class="mono">veil-demo-task-1</b><br><span class="small muted">1 tab(s) • Example Domain</span><br><span class="mono small">https://example.com/</span></span><span class="tag allow">live</span></div>';
+  }
+
+  // pending
+  const pend = state.pending || [];
+  document.getElementById("pending-count").textContent = pend.length ? "("+pend.length+")" : "";
+  const pl = document.getElementById("pending-list");
+  if(!pend.length){
+    pl.innerHTML = '<p class="empty">Nothing waiting. When the agent needs you, it appears here — with the exact action, target and expected effect, not just “Allow?”.</p>';
+  } else {
+    pl.innerHTML = pend.map(p => `
+      <div class="pending">
+        <p><b>${esc(p.action)}</b> &nbsp;${outcomeTag(p.outcome)}</p>
+        <p>Target: <span class="mono">${esc(p.target)}</span></p>
+        <p>Expected effect: ${esc(p.expected_effect)}</p>
+        <p class="small muted">Risk: ${esc(p.capability.risk)} • Session: <span class="mono">${esc(p.capability.session)}</span> • Who: <span class="mono">${esc(p.capability.who)}</span><br>Scope: <span class="mono">${esc(JSON.stringify(p.capability.scope))}</span><br>${esc(p.reason)}</p>
+        <div class="actions"><button class="approve" onclick="approve('${esc(p.proposal_id)}')">✓ Approve this exact action</button><button class="danger" onclick="deny('${esc(p.proposal_id)}')">✕ Deny</button></div>
+      </div>`).join("");
+  }
+
+  // network
+  document.getElementById("net-btns").innerHTML = NET_STATES.map(s =>
+    `<button class="${s===state.network_state?'active':''}" onclick="setNet('${s}')">${s}</button>`).join("");
+  document.getElementById("domains").textContent = (state.allowed_domains||[]).join(", ") || "—";
+
+  // capabilities
+  const caps = state.capabilities || {};
+  document.getElementById("caps").innerHTML = Object.entries(caps).map(([name, allowed]) =>
+    `<div class="row"><span class="mono">${esc(name)}</span><span><span class="tag ${allowed?'allow':'deny'}">${allowed?'allowed':'blocked'}</span> <button onclick="toggleCap('${esc(name)}', ${!allowed})">${allowed?'Block':'Allow'}</button></span></div>`).join("") || '<p class="empty">No policy loaded.</p>';
+
+  // approvals
+  const ap = state.approvals || [];
+  document.getElementById("approvals").innerHTML = ap.length ? ap.map(a =>
+    `<div class="row"><span class="mono">${esc(a.capability)}</span><span class="small">expires in ${Math.floor(a.expires_in_seconds/60)}m ${a.expires_in_seconds%60}s</span></div>`).join("")
+    : '<p class="empty">No active approvals. Approvals are bound to the exact action and expire (15 min by default).</p>';
+
+  // limits
+  const lim = state.limits || {};
+  const cg = lim.cgroup_probe || {};
+  document.getElementById("limits").innerHTML = `
+    <div class="row"><span>CPU</span><span>${lim.cpu_seconds}s</span></div>
+    <div class="row"><span>Address space</span><span>${lim.memory_mb} MB</span></div>
+    <div class="row"><span>Max processes</span><span>${lim.max_processes} (per-UID — loose, see docs)</span></div>
+    <div class="row"><span>Max file size</span><span>${lim.max_file_mb} MB</span></div>
+    <div class="row"><span>Timeout</span><span>${lim.timeout_seconds}s</span></div>
+    <div class="row"><span>cgroup v2</span><span class="tag ${cg.enforced_here?'allow':'off'}">${cg.enforced_here ? 'enforced' : 'NOT enforced on this host'}</span></div>`;
+
+  // journal
+  document.getElementById("journal").innerHTML = (state.journal||[]).map(j =>
+    `<tr><td class="mono">${esc(j.action)}</td><td class="mono">${esc(j.target)}</td><td>${outcomeTag(j.outcome)}</td><td class="small muted">${esc(j.reason||"")}</td></tr>`).join("") || '<tr><td colspan="4" class="muted">No journal entries yet.</td></tr>';
+
+  // snapshots
+  const snaps = state.snapshots || [];
+  document.getElementById("snaps").innerHTML = snaps.length ? snaps.map(s =>
+    `<div class="row"><span><span class="mono">${esc(s.snapshot_id)}</span><br><span class="small muted">${esc(s.workspace)} • ${s.file_count} files</span></span><button onclick="rollback('${esc(s.snapshot_id)}')">Rollback to this</button></div>`).join("")
+    : '<p class="empty">No snapshots yet. Run a task and snapshots appear here.</p>';
+}
+async function refresh(){
+  if (DEMO) { state = DEMO_STATE; render(); return; }
+  try {
+    const r = await fetch("/api/state");
+    state = await r.json();
+    document.getElementById("err").textContent = "";
+    render();
+  } catch(e){ document.getElementById("err").textContent = "Security Center server unreachable: " + e.message; }
+}
+if (DEMO) { document.getElementById("err").textContent = "Demo mode — simulated broker state. Buttons work locally; the real Security Center runs on your machine at http://127.0.0.1:8765/"; }
+refresh();
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>
