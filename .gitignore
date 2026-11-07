@@ -1,0 +1,17 @@
+# Runtime state — never commit
+run/
+veil-sandbox/.snapshots/
+veil-sandbox/test-workspace/
+__pycache__/
+*.pyc
+*.log
+*.log.jsonl
+# Generated task workspaces
+demo-workspace/
+mvp-workspace/
+mvp-workspace-service/
+research-workspace/
+# Generated video test projects (demo-cut is the tracked demo)
+veil-video/projects/vid-*/
+# OS artifacts
+.DS_Store

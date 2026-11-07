@@ -1,0 +1,23 @@
+# Build context is the workspace root (contains veil-os/ + veil-browser-cli/).
+# Keep the image lean and the build reproducible: no git metadata, no
+# build artifacts, no runtime state, no host-only files.
+**/.git
+**/.gitignore
+**/target
+**/__pycache__
+**/*.pyc
+**/*.log
+**/*.log.jsonl
+**/.DS_Store
+# Runtime state — created fresh inside the container.
+veil-os/run
+veil-os/.snapshots
+veil-os/*-workspace
+veil-os/mvp-workspace
+veil-os/research-workspace
+# Host-only publish manifests (GitHub snapshot push bookkeeping).
+*.paths
+*.muse-github-snapshot-sync.json
+*.muse-github-snapshot-sync.json.tmp-*
+# Local dev-host notes, not part of the image.
+veil-os/setup-dev-host.sh
