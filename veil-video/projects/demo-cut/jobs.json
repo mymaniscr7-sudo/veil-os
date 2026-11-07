@@ -1,0 +1,35 @@
+[
+  {
+    "job_id": "job-af7253ba",
+    "type": "scenes",
+    "project_id": "demo-cut",
+    "label": "scenes a-roll.mp4",
+    "status": "done",
+    "progress": 1.0,
+    "total_seconds": null,
+    "output": {
+      "scenes": "scenes.json",
+      "scene_count": 1
+    },
+    "error": null,
+    "log_tail": "",
+    "pid": null,
+    "created_at": "2026-11-06T13:46:56.126638+00:00",
+    "updated_at": "2026-11-06T13:46:56.257586+00:00"
+  },
+  {
+    "job_id": "job-d0b27ab2",
+    "type": "render",
+    "project_id": "demo-cut",
+    "label": "render render.mp4",
+    "status": "done",
+    "progress": 1.0,
+    "total_seconds": 6.0,
+    "output": "/home/hatch/workspace/veil-os/veil-video/projects/demo-cut/renders/render.mp4",
+    "error": null,
+    "log_tail": "",
+    "pid": 18605,
+    "created_at": "2026-11-06T13:46:56.745380+00:00",
+    "updated_at": "2026-11-06T13:46:57.750983+00:00"
+  }
+]

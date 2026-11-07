@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "width": 640,
+  "height": 360,
+  "fps": 30.0,
+  "clips": [
+    {
+      "clip_id": "c1",
+      "source": "a-roll.mp4",
+      "track": "v1",
+      "start": 0.0,
+      "in_point": 1.0,
+      "out_point": 4.0,
+      "duration": null,
+      "speed": 1.0,
+      "volume": 1.0,
+      "text": "",
+      "transition_in": "",
+      "transition_out": "",
+      "transition_dur": 0.5
+    },
+    {
+      "clip_id": "c2",
+      "source": "b-roll.mp4",
+      "track": "v1",
+      "start": 3.0,
+      "in_point": 0.0,
+      "out_point": 3.0,
+      "duration": null,
+      "speed": 1.0,
+      "volume": 1.0,
+      "text": "",
+      "transition_in": "fade",
+      "transition_out": "",
+      "transition_dur": 0.5
+    },
+    {
+      "clip_id": "t1",
+      "source": "",
+      "track": "text",
+      "start": 0.5,
+      "in_point": 0.0,
+      "out_point": 2.5,
+      "duration": 2.0,
+      "speed": 1.0,
+      "volume": 1.0,
+      "text": "VEIL Video",
+      "transition_in": "",
+      "transition_out": "",
+      "transition_dur": 0.5
+    }
+  ]
+}

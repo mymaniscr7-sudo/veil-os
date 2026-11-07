@@ -1,0 +1,11 @@
+{
+  "file": "a-roll.mp4",
+  "threshold": 0.4,
+  "scene_count": 1,
+  "scenes": [
+    {
+      "time": 0.0,
+      "score": 1.0
+    }
+  ]
+}
