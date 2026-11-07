@@ -1,0 +1,58 @@
+# VEIL OS — docker compose
+#
+#   cd veil-os/docker
+#   docker compose up --build -d
+#
+#   Security Center: http://127.0.0.1:8765/
+#   Remote API:      http://127.0.0.1:8766/  (Bearer token, see below)
+#
+# The build context is the workspace root (../..) because the image needs
+# BOTH repos side by side: veil-os/ and veil-browser-cli/.
+#
+# Bubblewrap needs user-namespace + mount syscalls that Docker's default
+# seccomp profile blocks, so the container runs with SYS_ADMIN and an
+# unconfined seccomp profile. That is the documented minimum for v1;
+# --privileged works too if your host needs it.
+#
+# Remote API token: set VEIL_REMOTE_TOKEN in a .env file next to this
+# compose file (or export it) to choose the token yourself. If you leave
+# it unset, the entrypoint generates one on first boot, saves it in the
+# veil-run volume (run/remote-token, 0600) and prints it once in the
+# container log:  docker compose logs veil-os
+services:
+  veil-os:
+    build:
+      context: ../..
+      dockerfile: veil-os/docker/Dockerfile
+    image: veil-os:latest
+    container_name: veil-os
+    restart: unless-stopped
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - seccomp:unconfined
+    ports:
+      # Security Center has no auth by design — publish on localhost only.
+      - "127.0.0.1:8765:8765"
+      # Remote API requires its Bearer token.
+      - "127.0.0.1:8766:8766"
+    environment:
+      VEIL_REMOTE_TOKEN: ${VEIL_REMOTE_TOKEN:-}
+    volumes:
+      - veil-workspace:/workspace
+      - veil-run:/opt/veil/run
+      - veil-video-projects:/opt/veil/veil-video/projects
+      # The egress CA rotates (new cert per host boot) but the image bakes
+      # the CA from build time — after a host replacement the browser
+      # daemon imports a stale CA and every page fails with
+      # ERR_CERT_AUTHORITY_INVALID. Mount the host's current CA dir so
+      # the daemon always imports the live CA into fresh profiles
+      # (found 2026-11-07; a reused profile keeps the old CA nickname,
+      # so a fresh container — or wiping the session profile — is what
+      # picks the new CA up).
+      - /run/hatch/egress-tls:/run/hatch/egress-tls:ro
+
+volumes:
+  veil-workspace:
+  veil-run:
+  veil-video-projects:
