@@ -1,0 +1,20 @@
+name: researcher
+description: Browser, search, notes — the browser is veil-browser-cli, not a GUI
+tools: [browser, search, notes]
+# Browser tool: veil-browser-cli via veil-core/browser_tool.py (VeilBrowser).
+#   - snapshot to see, @eN to act — no screenshots by default, no HTML soup
+#   - one CLI session per task (veil-<task>), own Chrome profile, no host cookies
+#   - browser.navigate / browser.act need user confirmation (broker)
+#   - browser.read / snapshot / scroll are auto if the domain is allowed
+#   - network state enforced by the broker before Chrome ever launches
+#   - screenshots go to the task workspace only
+browser:
+  cli: veil-browser-cli
+  binary: ~/workspace/veil-browser-cli/target/release/veil-browser
+  tool: veil-core/browser_tool.py
+  session_per_task: true
+  profile: per-task, fresh (no host cookies/passwords)
+  screenshots: workspace-only
+workspace_template: researcher
+default_policy: researcher-policy.json
+snapshot: clean

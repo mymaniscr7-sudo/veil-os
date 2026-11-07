@@ -1,0 +1,6 @@
+name: assistant
+description: Calendar, documents, approved apps
+tools: [calendar, documents, approved-apps]
+workspace_template: assistant
+default_policy: assistant-policy.json
+snapshot: clean

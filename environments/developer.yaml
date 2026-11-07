@@ -1,0 +1,6 @@
+name: developer
+description: Editor, terminal, Git, testing
+tools: [editor, terminal, git, pytest]
+workspace_template: developer
+default_policy: developer-policy.json
+snapshot: clean

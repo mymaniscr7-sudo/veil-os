@@ -1,0 +1,6 @@
+name: designer
+description: Design tools, assets, workspace
+tools: [design-tools, assets, workspace]
+workspace_template: designer
+default_policy: designer-policy.json
+snapshot: clean

@@ -1,0 +1,6 @@
+name: analyst
+description: Python, datasets, notebooks
+tools: [python, datasets, notebooks]
+workspace_template: analyst
+default_policy: analyst-policy.json
+snapshot: clean

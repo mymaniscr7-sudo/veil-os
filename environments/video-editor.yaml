@@ -1,0 +1,32 @@
+name: video-editor
+description: VEIL Video — AI-first video editing (CLI/API, not a GUI editor)
+tools: [veil-video, ffmpeg, faster-whisper, probe, transcript, render]
+# VEIL Video tool: veil-video/video_tool.py (VeilVideo) + veil-video/cli.py.
+#   - probe to see, transcript to hear, timeline JSON to edit — no playhead, no pixels
+#   - the AI never composes ffmpeg args; render.py builds the filter graph
+#     from the validated timeline manifest
+#   - video.read: auto inside the project
+#   - video.edit / video.render / video.transcribe: reversible-write inside
+#     the project workspace, with snapshot/rollback
+#   - video.export / video.publish: file leaves the project — user
+#     confirmation every time (Security Center or Windows Remote API)
+#   - video.delete (source media): explicit confirmation + step-up auth
+#   - long ops (render, transcribe, scenes) are jobs: poll job status,
+#     watch progress, cancel — the Windows client watches the same jobs
+#   - faster-whisper: optional on this host (not installed 2026-11-06);
+#     transcribe fails clearly with the install hint, never fakes a transcript
+#   - melt/MLT: optional (not installed 2026-11-06); ffmpeg is the v1
+#     renderer, .mlt export is for Shotcut/Kdenlive interoperability
+video:
+  cli: veil-video
+  tool: veil-video/video_tool.py
+  projects_root: veil-video/projects
+  remote_api: veil-video/remote_api.py
+  remote_port: 8766
+  session_per_task: true
+  media: copied into media/ on import (never edited in place)
+  renders: renders/ inside the project
+  exports: exports/ staged; publish leaves the project (broker-gated)
+workspace_template: video-editor
+default_policy: video-editor-policy.json
+snapshot: clean
