@@ -1,0 +1,38 @@
+{
+  "capabilities": {
+    "api.call": false,
+    "browser.navigate": true,
+    "camera.access": false,
+    "filesystem.read": true,
+    "filesystem.write": true,
+    "install.host-software": false,
+    "network.egress": true,
+    "system.settings": false,
+    "terminal.run": true,
+    "video.delete": false,
+    "video.edit": true,
+    "video.export": true,
+    "video.publish": true,
+    "video.read": true,
+    "video.render": true,
+    "video.transcribe": true
+  },
+  "name": "developer-mvp-policy",
+  "network": {
+    "allowed_domains": [
+      "github.com",
+      "pypi.org"
+    ],
+    "state": "approved-domains"
+  },
+  "note": "Network is a state, not a switch. filesystem.write is reversible-write (snapshot required). api.call / system.settings / install.host-software are denied. Critical-risk actions need step-up auth even if listed true.",
+  "terminal": {
+    "approved_commands": [
+      "ls",
+      "cat",
+      "echo",
+      "pwd",
+      "python3"
+    ]
+  }
+}
