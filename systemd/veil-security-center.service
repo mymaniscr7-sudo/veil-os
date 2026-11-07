@@ -1,0 +1,32 @@
+[Unit]
+Description=VEIL Security Center
+Documentation=file:///home/hatch/workspace/veil-os/README.md
+After=veil-broker.service
+Requires=veil-broker.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=/home/hatch/workspace/veil-os
+# Wait for the broker socket to answer before starting. Without this,
+# the server's own _ensure_broker() could race the broker unit and
+# spawn a second broker via veil-broker.py start.
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 30); do /usr/bin/python3 /home/hatch/workspace/veil-os/veil-core/veil-broker.py status >/dev/null 2>&1 && exit 0; sleep 1; done; exit 1'
+ExecStart=/usr/bin/python3 /home/hatch/workspace/veil-os/veil-desktop/server.py --port 8765
+# The daemon finds Chrome relative to HOME; the unit runs as root
+# (HOME=/root) but Chrome for Testing lives in /home/hatch/.cache.
+# Without this the browser daemon fails 'no Chrome binary found'
+# and every researcher task fails at snapshot (found 2026-11-07).
+Environment=VEIL_BROWSER_CHROME=/home/hatch/.cache/veil-browser/chrome-linux64/chrome
+# The unit runs with NO HOME in its environment. The Rust CLI falls
+# back to a cwd-relative ".veil-browser" dir when HOME is unset, while
+# browser_tool.py falls back to /root via the passwd db — so the CLI
+# daemon and the task disagree on where the session socket lives,
+# open() succeeds but snapshot() always reports "no page open".
+# Pin one absolute home both sides agree on (found 2026-11-07).
+Environment=VEIL_BROWSER_HOME=/home/hatch/.cache/veil-browser
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

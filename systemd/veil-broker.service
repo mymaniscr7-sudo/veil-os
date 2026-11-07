@@ -1,0 +1,20 @@
+[Unit]
+Description=VEIL Permission Broker
+Documentation=file:///home/hatch/workspace/veil-os/README.md
+After=network.target
+Wants=network.target
+# No start-rate limit: a watchdog that gives up after 5 crashes is no
+# watchdog. A restart wipes in-memory approvals by design.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=/home/hatch/workspace/veil-os
+ExecStart=/usr/bin/python3 /home/hatch/workspace/veil-os/veil-core/broker_service.py --serve --policy /home/hatch/workspace/veil-os/veil-core/policy_v2.example.json --run-dir /home/hatch/workspace/veil-os/run
+# Watchdog semantics: restart on any exit, including a SIGKILL (e.g. OOM).
+# RestartSec keeps a persistent failure from spinning tight.
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
